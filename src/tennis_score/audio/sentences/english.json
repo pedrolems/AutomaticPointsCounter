@@ -1,0 +1,25 @@
+{
+  "language": "en",
+  "point_words": ["love", "fifteen", "thirty", "forty"],
+  "ordinals": ["first", "second", "third", "fourth", "fifth"],
+  "count_words": ["love", "one", "two", "three"],
+  "templates": {
+    "serve": "{player} to serve.",
+    "point": "{server_points} {receiver_points}.",
+    "point_all": "{points} all.",
+    "deuce": "Deuce.",
+    "advantage": "Advantage {player}.",
+    "deciding_point": "Deciding point.",
+    "tiebreak_start": "Tiebreak.",
+    "tiebreak_point": "{server_points} {receiver_points}.",
+    "tiebreak_all": "{points} all.",
+    "game_leads": "Game {player}. {leader} leads {high} games to {low}.",
+    "game_all": "Game {player}. {n} games all.",
+    "set": "Game and {ordinal} set {player}, {high} games to {low}.",
+    "sets_leads": "{leader} leads {high} sets to {low}.",
+    "sets_all": "{n} sets all.",
+    "set_score": "{a} to {b}",
+    "set_score_join": ", ",
+    "match": "Game, set and match {player}. {scores}."
+  }
+}
