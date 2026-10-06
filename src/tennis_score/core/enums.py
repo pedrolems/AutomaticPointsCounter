@@ -61,3 +61,8 @@ class Language(str, Enum):
     @property
     def sentences_file(self) -> str:
         return {"pt": "portuguese.json", "en": "english.json"}[self.value]
+
+    @property
+    def audio_dir(self) -> str:
+        """Pasta (dentro de assets/audio) com os áudios gravados do idioma."""
+        return {"pt": "pt-br", "en": "en"}[self.value]

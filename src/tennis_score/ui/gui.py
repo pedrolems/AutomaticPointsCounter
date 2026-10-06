@@ -9,7 +9,7 @@ from ..audio import TTS, Umpire
 from ..core.enums import FinalSetFormat, Language, Player
 from ..core.rules import MatchConfig
 from ..core.score import MatchOver, Score
-from ..i18n import get_language, set_language, t
+from ..i18n import all_translations, get_language, set_language, t
 from .common import has_change_ends, serving_text, set_cell, situation_text
 
 BG = "#10271b"
@@ -61,6 +61,7 @@ class ScoreboardApp(tk.Tk):
         return Score(self.config_, server)
 
     def _start_announcement(self) -> None:
+        self._last_events = None  # eventos do último ponto (para refazer a fala ao trocar de idioma)
         self.last_call = self.umpire.opening(self.score)
         self.tts.speak(self.last_call)
 
@@ -110,13 +111,15 @@ class ScoreboardApp(tk.Tk):
         except MatchOver:
             return
         calls = self.umpire.announce(events, self.score)
+        self._last_events = events
         self.last_call = " ".join(calls)
         self.notice = t("change_ends") if has_change_ends(events) else ""
-        self.tts.speak(self.last_call)
+        self.tts.speak(self.last_call, clips=self.umpire.clips(events))
         self.refresh()
 
     def _undo(self) -> None:
         if self.score.undo():
+            self._last_events = None
             self.last_call, self.notice = "", ""
             self.tts.speak("", interrupt=True)
             self.refresh()
@@ -126,7 +129,21 @@ class ScoreboardApp(tk.Tk):
         set_language(new)
         self.umpire.set_language(new)
         self.tts.set_language(new)
+        self._retranslate_state()
         self.refresh()
+
+    def _retranslate_state(self) -> None:
+        """Refaz no novo idioma o que já estava escrito: nomes padrão, última fala e aviso."""
+        for i, name in enumerate(self.names):
+            if name in all_translations("player_n", n=i + 1):  # "Jogador 1" / "Player 1"
+                self.names[i] = t("player_n", n=i + 1)
+        self.umpire.set_names(self.names)
+        if self._last_events is not None:
+            self.last_call = " ".join(self.umpire.announce(self._last_events, self.score))
+        elif self.last_call:  # ainda é a abertura ("X ao saque"): nenhum ponto foi jogado
+            self.last_call = self.umpire.opening(self.score)
+        if self.notice:
+            self.notice = t("change_ends")
 
     def _toggle_sound(self) -> None:
         self.sound = not self.sound

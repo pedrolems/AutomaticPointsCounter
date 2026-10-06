@@ -3,6 +3,10 @@
   "point_words": ["zero", "quinze", "trinta", "quarenta"],
   "ordinals": ["primeiro", "segundo", "terceiro", "quarto", "quinto"],
   "count_words": ["zero", "um", "dois", "três"],
+  "clips": {
+    "advantage": "VANTAGEM",
+    "deciding_point": "PONTO-DECISIVO"
+  },
   "templates": {
     "serve": "{player} ao saque.",
     "point": "{server_points} a {receiver_points}.",

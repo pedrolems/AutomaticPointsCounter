@@ -2,13 +2,17 @@
 
 Usa pyttsx3 (offline) se estiver instalado; caso contrário fica mudo sem quebrar nada.
 Instalar: pip install pyttsx3
+
+Idiomas que têm áudios gravados em assets/audio (ex.: português) não usam a voz sintética:
+tocam só os áudios gravados (ver clips.py); o que ainda não foi gravado fica sem voz.
 """
 
 import queue
 import threading
-from typing import Optional
+from typing import Optional, Sequence
 
 from ..core.enums import Language
+from .clips import ClipPlayer, Cue
 
 _STOP = object()
 
@@ -25,6 +29,7 @@ class TTS:
         self.rate = rate
         self._q: "queue.Queue" = queue.Queue()
         self._thread: Optional[threading.Thread] = None
+        self._clips = ClipPlayer()
         self.available = self._check_backend()
 
     @staticmethod
@@ -42,8 +47,14 @@ class TTS:
         self.enabled = enabled
         if not enabled:
             self._drain()
+            self._clips.stop()
 
-    def speak(self, text: str, interrupt: bool = True) -> None:
+    def speak(self, text: str, interrupt: bool = True, clips: Sequence[Cue] = ()) -> None:
+        """Fala `text` com a voz sintética; se o idioma tem áudios gravados, toca `clips` no lugar."""
+        if self._clips.has_recordings(self.language):
+            if self.enabled:
+                self._clips.play(self.language, clips, interrupt)
+            return
         if not (self.enabled and self.available and text):
             return
         if interrupt:
@@ -52,6 +63,7 @@ class TTS:
         self._q.put((self.language, text))
 
     def shutdown(self) -> None:
+        self._clips.shutdown()
         if self._thread:
             self._drain()
             self._q.put(_STOP)

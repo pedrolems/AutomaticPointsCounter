@@ -100,3 +100,8 @@ def get_language() -> Language:
 def t(key: str, **kwargs) -> str:
     text = _STRINGS[_current].get(key) or _STRINGS[Language.EN].get(key, key)
     return text.format(**kwargs) if kwargs else text
+
+
+def all_translations(key: str, **kwargs) -> set:
+    """O mesmo texto em todos os idiomas (serve para reconhecer um texto padrão já traduzido)."""
+    return {(s[key].format(**kwargs) if kwargs else s[key]) for s in _STRINGS.values() if key in s}

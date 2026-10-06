@@ -41,7 +41,7 @@ def run_cli(score: Score, umpire: Umpire, tts: TTS, names: Sequence[str]) -> Non
             calls = umpire.announce(events, score)
             text = " ".join(calls)
             print(f"[{t('umpire')}] {text}")
-            tts.speak(text)
+            tts.speak(text, clips=umpire.clips(events))
             if has_change_ends(events):
                 print(t("change_ends"))
         else:

@@ -2,9 +2,10 @@
 
 import json
 from pathlib import Path
-from typing import Dict, List, Sequence
+from typing import Dict, List, Sequence, Tuple
 
 from ..core.enums import EventType, Language, Player
+from ..core.rules import POINT_NAMES
 from ..core.score import Event, Score
 
 SENTENCES_DIR = Path(__file__).parent / "sentences"
@@ -27,6 +28,7 @@ class Umpire:
         self._ordinals: List[str] = data["ordinals"]
         self._counts: List[str] = data["count_words"]
         self._tpl: Dict[str, str] = data["templates"]
+        self._clip_names: Dict[str, str] = data.get("clips", {})
 
     def set_names(self, names: Sequence[str]) -> None:
         self.names = list(names)
@@ -58,6 +60,27 @@ class Umpire:
             elif t == EventType.TIEBREAK_START:
                 phrases.append(self._tpl["tiebreak_start"])
         return phrases
+
+    def clips(self, events: Sequence[Event]) -> List[Tuple[str, ...]]:
+        """Áudios gravados a tocar para os eventos de um ponto (o que não tem gravação fica de fora).
+
+        Cada item é uma tupla de chaves em ordem de preferência. Os placares seguem a leitura do
+        umpire, sempre com o sacador primeiro: "15-0" = sacador 15, recebedor 0.
+        """
+        cues: List[Tuple[str, ...]] = []
+        for e in events:
+            if e.type == EventType.POINT:
+                server: Player = e.data["server"]
+                s, r = e.data["points"][server], e.data["points"][server.opponent]
+                cues.append((f"{POINT_NAMES[min(s, 3)]}-{POINT_NAMES[min(r, 3)]}",))
+            elif e.type == EventType.DEUCE:
+                cues.append(("40-40",))
+            elif e.type == EventType.DECIDING_POINT:
+                # sem áudio próprio de "ponto decisivo", cantar o placar 40-40 ainda informa
+                cues.append(tuple(k for k in (self._clip_names.get("deciding_point"), "40-40") if k))
+            elif e.type == EventType.ADVANTAGE and "advantage" in self._clip_names:
+                cues.append((self._clip_names["advantage"],))
+        return cues
 
     # ------------------------------------------------------------ frases
     def _point(self, e: Event, tiebreak: bool) -> str:
