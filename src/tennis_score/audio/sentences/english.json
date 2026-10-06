@@ -3,6 +3,12 @@
   "point_words": ["love", "fifteen", "thirty", "forty"],
   "ordinals": ["first", "second", "third", "fourth", "fifth"],
   "count_words": ["love", "one", "two", "three"],
+  "clips": {
+    "advantage": "ADVANTAGE",
+    "deuce": "DEUCE",
+    "game": "GAME",
+    "match": "GAME, SET AND MATCH"
+  },
   "templates": {
     "serve": "{player} to serve.",
     "point": "{server_points} {receiver_points}.",

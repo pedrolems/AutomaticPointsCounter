@@ -67,6 +67,7 @@ class Umpire:
         Cada item é uma tupla de chaves em ordem de preferência. Os placares seguem a leitura do
         umpire, sempre com o sacador primeiro: "15-0" = sacador 15, recebedor 0.
         """
+        types = {e.type for e in events}
         cues: List[Tuple[str, ...]] = []
         for e in events:
             if e.type == EventType.POINT:
@@ -74,12 +75,19 @@ class Umpire:
                 s, r = e.data["points"][server], e.data["points"][server.opponent]
                 cues.append((f"{POINT_NAMES[min(s, 3)]}-{POINT_NAMES[min(r, 3)]}",))
             elif e.type == EventType.DEUCE:
-                cues.append(("40-40",))
+                # idiomas com áudio próprio de "deuce" (inglês) usam ele; os demais cantam 40-40
+                cues.append(tuple(k for k in (self._clip_names.get("deuce"), "40-40") if k))
             elif e.type == EventType.DECIDING_POINT:
                 # sem áudio próprio de "ponto decisivo", cantar o placar 40-40 ainda informa
                 cues.append(tuple(k for k in (self._clip_names.get("deciding_point"), "40-40") if k))
             elif e.type == EventType.ADVANTAGE and "advantage" in self._clip_names:
                 cues.append((self._clip_names["advantage"],))
+            elif e.type == EventType.MATCH and "match" in self._clip_names:
+                cues.append((self._clip_names["match"],))
+            elif (e.type == EventType.SET and EventType.MATCH not in types
+                  or e.type == EventType.GAME and not ({EventType.SET, EventType.MATCH} & types)):
+                if "game" in self._clip_names:
+                    cues.append((self._clip_names["game"],))
         return cues
 
     # ------------------------------------------------------------ frases

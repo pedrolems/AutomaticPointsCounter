@@ -7,6 +7,9 @@ from .enums import CourtSide, FinalSetFormat, Player
 
 POINT_NAMES = ("0", "15", "30", "40")
 
+CHANGEOVER_SECONDS = 90   # descanso na troca de lado (após os games ímpares)
+SET_BREAK_SECONDS = 120   # descanso entre um set e outro
+
 
 @dataclass(frozen=True)
 class MatchConfig:

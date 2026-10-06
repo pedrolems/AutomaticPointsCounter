@@ -1,6 +1,8 @@
 """Interface gráfica (Tkinter): placar, nomes, indicador de saque e botões de ponto."""
 
+import math
 import random
+import time
 import tkinter as tk
 from tkinter import ttk
 from typing import List, Optional, Sequence
@@ -10,7 +12,7 @@ from ..core.enums import FinalSetFormat, Language, Player
 from ..core.rules import MatchConfig
 from ..core.score import MatchOver, Score
 from ..i18n import all_translations, get_language, set_language, t
-from .common import has_change_ends, serving_text, set_cell, situation_text
+from .common import has_change_ends, rest_period, serving_text, set_cell, situation_text
 
 BG = "#10271b"
 PANEL = "#17382a"
@@ -43,10 +45,14 @@ class ScoreboardApp(tk.Tk):
         self.sound = sound
         self.last_call = ""
         self.notice = ""
+        self._rest_job = None     # agendamento (after) do cronômetro de descanso
+        self._rest_kind = None    # "game" (90 s) ou "set" (120 s); None = sem descanso em andamento
+        self._rest_end = 0.0
+        self._rest_over = False
         self.score = self._new_score()
 
         self.configure(bg=BG)
-        self.minsize(720, 460)
+        self.minsize(720, 490)
         self._build()
         self.bind("<Left>", lambda e: self._point(Player.ONE))
         self.bind("<Right>", lambda e: self._point(Player.TWO))
@@ -87,6 +93,8 @@ class ScoreboardApp(tk.Tk):
         self.call_lbl.pack(pady=(4, 0))
         self.serve_lbl = tk.Label(self, fg=MUTED, bg=BG, font=("Helvetica", 10))
         self.serve_lbl.pack(pady=(6, 0))
+        self.rest_lbl = tk.Label(self, fg=ACCENT, bg=BG, font=("Helvetica", 18, "bold"))
+        self.rest_lbl.pack(pady=(8, 0))
 
         btns = tk.Frame(self, bg=BG)
         btns.pack(fill="x", padx=16, pady=16, side="bottom")
@@ -115,6 +123,7 @@ class ScoreboardApp(tk.Tk):
         self.last_call = " ".join(calls)
         self.notice = t("change_ends") if has_change_ends(events) else ""
         self.tts.speak(self.last_call, clips=self.umpire.clips(events))
+        self._start_rest(rest_period(events))  # um novo ponto sempre encerra o descanso anterior
         self.refresh()
 
     def _undo(self) -> None:
@@ -122,6 +131,7 @@ class ScoreboardApp(tk.Tk):
             self._last_events = None
             self.last_call, self.notice = "", ""
             self.tts.speak("", interrupt=True)
+            self._stop_rest()
             self.refresh()
 
     def _toggle_language(self) -> None:
@@ -158,10 +168,46 @@ class ScoreboardApp(tk.Tk):
             self.umpire.set_names(self.names)
             self.score = self._new_score()
             self.notice = ""
+            self._stop_rest()
             self._start_announcement()
             self.refresh()
 
+    # ------------------------------------------------------------ descanso (cronômetro)
+    def _start_rest(self, rest) -> None:
+        """Inicia o descanso `("game"|"set", segundos)`; None só cancela o que estiver rodando."""
+        self._stop_rest()
+        if rest is None:
+            return
+        self._rest_kind, seconds = rest
+        self._rest_end = time.monotonic() + seconds
+        self._tick_rest()
+
+    def _stop_rest(self) -> None:
+        if self._rest_job is not None:
+            self.after_cancel(self._rest_job)
+            self._rest_job = None
+        self._rest_kind = None
+        self._rest_over = False
+
+    def _tick_rest(self) -> None:
+        if self._rest_end - time.monotonic() <= 0:
+            self._rest_job = None
+            self._rest_over = True
+            self.bell()
+        else:
+            self._rest_job = self.after(200, self._tick_rest)
+        self.rest_lbl.config(text=self._rest_text())
+
+    def _rest_text(self) -> str:
+        if self._rest_kind is None:
+            return " "
+        if self._rest_over:
+            return t("rest_over")
+        left = max(0, math.ceil(self._rest_end - time.monotonic()))
+        return t("rest_set" if self._rest_kind == "set" else "rest_game", time=f"{left // 60:02d}:{left % 60:02d}")
+
     def _close(self) -> None:
+        self._stop_rest()
         self.tts.shutdown()
         self.destroy()
 
@@ -182,6 +228,7 @@ class ScoreboardApp(tk.Tk):
         self.situation_lbl.config(text="   ".join(x for x in (situation, self.notice) if x) or " ")
         self.call_lbl.config(text=f"{t('umpire')}: “{self.last_call}”" if self.last_call else " ")
         self.serve_lbl.config(text=serving_text(s, self.names) or " ")
+        self.rest_lbl.config(text=self._rest_text())
 
     def _draw_board(self) -> None:
         for w in self.board.winfo_children():

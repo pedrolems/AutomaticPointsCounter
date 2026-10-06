@@ -1,8 +1,9 @@
 """Funções compartilhadas entre a interface gráfica e a de terminal."""
 
-from typing import Sequence
+from typing import Optional, Sequence, Tuple
 
 from ..core.enums import CourtSide, EventType, Player
+from ..core.rules import CHANGEOVER_SECONDS, SET_BREAK_SECONDS
 from ..core.score import Event, Score
 from ..i18n import t
 
@@ -42,3 +43,19 @@ def serving_text(score: Score, names: Sequence[str]) -> str:
 
 def has_change_ends(events: Sequence[Event]) -> bool:
     return any(e.type == EventType.CHANGE_ENDS for e in events)
+
+
+def rest_period(events: Sequence[Event]) -> Optional[Tuple[str, int]]:
+    """Descanso a cronometrar depois de um ponto: ("set", 120), ("game", 90) ou None.
+
+    Set: 120 s entre um set e outro (não há descanso quando a partida acaba).
+    Game: 90 s só quando há troca de lado (games ímpares); nos pares e no tiebreak não para.
+    """
+    types = {e.type for e in events}
+    if EventType.MATCH in types:
+        return None
+    if EventType.SET in types:
+        return "set", SET_BREAK_SECONDS
+    if EventType.GAME in types and EventType.CHANGE_ENDS in types:
+        return "game", CHANGEOVER_SECONDS
+    return None
