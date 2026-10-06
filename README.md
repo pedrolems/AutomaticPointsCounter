@@ -499,7 +499,7 @@ The `tests/` folder is in place (`test_rules.py`, `test_score.py`, `test_sentenc
 
 ## 📄 License
 
-*To be defined by the project owner — add a `LICENSE` file (for example MIT) before publishing.*
+*No license*
 
 ---
 
